@@ -8,10 +8,14 @@ from zeeguu import db, util
 from zeeguu.model.language import Language
 import datetime
 
+# this import is used when flask.g.user.GraphsCaches is called
+from zeeguu.model.graphs_caches import GraphsCaches
+
 starred_words_association_table = Table('starred_words_association', db.Model.metadata,
     Column('user_id', Integer, ForeignKey('user.id')),
     Column('starred_word_id', Integer, ForeignKey('user_word.id'))
 )
+
 
 class User(db.Model):
     __table_args__ = {'mysql_collate': 'utf8_bin'}
@@ -146,7 +150,6 @@ class User(db.Model):
         good_for_study = [x for x in all_bookmarks if x.context_is_not_too_long() ]
 
         return map(lambda x: x.json_serializable_dict(), good_for_study[0:bookmark_count])
-
 
     def user_words(self):
         return map((lambda x: x.origin.word), self.all_bookmarks())

@@ -74,39 +74,8 @@ def my_account():
 
     estimator = SethiKnowledgeEstimator(flask.g.user, flask.g.user.learned_language_id)
 
-    graphs_caches = flask.g.user.GraphsCaches
-
-    # check if graphs_caches exists and if it does, then check if it is up to date
-    if graphs_caches is None or graphs_caches.activity_graph_cache_expire.date() < datetime.date.today():
-        print "Generating new caches"
-
-        # compute bookmark_counts_by_date
-        bookmark_counts_by_date = flask.g.user.bookmark_counts_by_date()
-
-        # compute learner_stats_data
-        from zeeguu.model.learner_stats.learner_stats import compute_learner_stats
-        learner_stats_data = compute_learner_stats(flask.g.user)
-
-        # save generated graphs in DB as caches
-        from zeeguu.model.graphs_caches import GraphsCaches
-        current_datetime = datetime.datetime.now()
-
-        # if graphs_caches doesnt exists then create it and then update it
-        if graphs_caches is None:
-            graphs_caches = GraphsCaches(' ', ' ', ' ', flask.g.user, None, None, None)
-
-        # add/update activity_graph_cache to the graphs_caches
-        graphs_caches.set_activity_graph_cache(str(bookmark_counts_by_date), current_datetime)
-        # add/update line_graph_cache to the graphs_caches
-        graphs_caches.set_line_graph_cache(str(learner_stats_data), current_datetime)
-
-        # commit changes to DB
-        zeeguu.db.session.add(graphs_caches)
-        zeeguu.db.session.commit()
-    else:
-        print "Using caches"
-        bookmark_counts_by_date = graphs_caches.activity_graph_cache
-        learner_stats_data = graphs_caches.line_graph_cache
+    # get learner_stats_data for the line_graph
+    learner_stats_data = flask.g.user.learner_stats_data()
 
     s = Session.find_for_user(flask.g.user)
     zeeguu.db.session.add(s)
@@ -120,6 +89,5 @@ def my_account():
     return flask.render_template("my_account.html",
                                  user=flask.g.user,
                                  estimator=estimator,
-                                 bookmark_counts_by_date=bookmark_counts_by_date,
                                  learner_stats_data=learner_stats_data,
                                  smartwatch_login_code=smartwatch_login_code)

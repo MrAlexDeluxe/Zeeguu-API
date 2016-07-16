@@ -20,7 +20,7 @@ class GraphsCaches(db.Model):
 
     def __init__(self, activity_graph_cache, line_graph_cache, piechart_cache, user, activity_graph_cache_expire, line_graph_cache_expire, piechart_cache_expire):
         self.user = user
-        
+
         self.set_activity_graph_cache(activity_graph_cache, activity_graph_cache_expire)
         self.set_line_graph_cache(line_graph_cache, line_graph_cache_expire)
         self.set_piechart_cache(piechart_cache, piechart_cache_expire)

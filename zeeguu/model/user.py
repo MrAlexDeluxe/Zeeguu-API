@@ -7,6 +7,7 @@ from sqlalchemy.orm import relationship
 from zeeguu import db, util
 from zeeguu.model.language import Language
 import datetime
+import json
 
 # this import is used when flask.g.user.GraphsCaches is called
 from zeeguu.model.graphs_caches import GraphsCaches
@@ -150,6 +151,20 @@ class User(db.Model):
         good_for_study = [x for x in all_bookmarks if x.good_for_study() ]
 
         return map(lambda x: x.json_serializable_dict(), good_for_study[0:bookmark_count])
+
+    # returns array with added bookmark amount per each date for the last year
+    def bookmark_counts_by_date(self):
+        year = datetime.date.today().year - 1  # get data from year 2015(if this year is 2016)
+        month = datetime.date.today().month
+        bookmarks_dict, dates = self.bookmarks_by_date(datetime.datetime(year, month, 1))
+
+        counts = []
+        for date in dates:
+            the_date = date.strftime('%Y-%m-%d')
+            the_count = len(bookmarks_dict[date])
+            counts.append(dict(date=the_date, count=the_count))
+
+        return json.dumps(counts)
 
     def user_words(self):
         return map((lambda x: x.origin.word), self.all_bookmarks())

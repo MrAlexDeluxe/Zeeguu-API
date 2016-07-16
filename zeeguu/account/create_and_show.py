@@ -81,17 +81,7 @@ def my_account():
         print "Generating new caches"
 
         # compute bookmark_counts_by_date
-        year = datetime.date.today().year - 1  # get data from year 2015(if this year is 2016)
-        month = datetime.date.today().month
-        bookmarks_dict, dates = flask.g.user.bookmarks_by_date(datetime.datetime(year, month, 1))
-
-        counts = []
-        for date in dates:
-            the_date = date.strftime('%Y-%m-%d')
-            the_count = len(bookmarks_dict[date])
-            counts.append(dict(date=the_date, count=the_count))
-
-        bookmark_counts_by_date = json.dumps(counts)
+        bookmark_counts_by_date = flask.g.user.bookmark_counts_by_date()
 
         # compute learner_stats_data
         from zeeguu.model.learner_stats.learner_stats import compute_learner_stats

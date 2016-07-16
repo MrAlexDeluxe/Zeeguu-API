@@ -76,8 +76,11 @@ def my_account():
 
     graphs_caches = flask.g.user.GraphsCaches
 
-    if graphs_caches is None:
+    # check if graphs_caches exists and if it does, then check if it is up to date
+    if graphs_caches is None or graphs_caches.activity_graph_cache_expire.date() < datetime.date.today():
         print "Generating new caches"
+
+        # compute bookmark_counts_by_date
         year = datetime.date.today().year - 1  # get data from year 2015(if this year is 2016)
         month = datetime.date.today().month
         bookmarks_dict, dates = flask.g.user.bookmarks_by_date(datetime.datetime(year, month, 1))
@@ -90,12 +93,24 @@ def my_account():
 
         bookmark_counts_by_date = json.dumps(counts)
 
+        # compute learner_stats_data
         from zeeguu.model.learner_stats.learner_stats import compute_learner_stats
         learner_stats_data = compute_learner_stats(flask.g.user)
 
+        # save generated graphs in DB as caches
         from zeeguu.model.graphs_caches import GraphsCaches
-        graphs_caches = GraphsCaches(str(bookmark_counts_by_date), str(learner_stats_data), ' ', flask.g.user)
+        current_datetime = datetime.datetime.now()
 
+        # if graphs_caches doesnt exists then create it and then update it
+        if graphs_caches is None:
+            graphs_caches = GraphsCaches(' ', ' ', ' ', flask.g.user, None, None, None)
+
+        # add/update activity_graph_cache to the graphs_caches
+        graphs_caches.set_activity_graph_cache(str(bookmark_counts_by_date), current_datetime)
+        # add/update line_graph_cache to the graphs_caches
+        graphs_caches.set_line_graph_cache(str(learner_stats_data), current_datetime)
+
+        # commit changes to DB
         zeeguu.db.session.add(graphs_caches)
         zeeguu.db.session.commit()
     else:

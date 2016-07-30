@@ -8,8 +8,6 @@
 
 <body>
 
-<script src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script>
-
 <script>
 
     // fetching learner_stats_data from the server and parsing(nesting) it for d3js library
@@ -22,7 +20,6 @@
             .entries(learner_stats_data);
 
     // end of the fetching and parsing learner_stats_data
-
 
     // setting up graph and its parameters
     var WIDTH = 1200;
@@ -60,8 +57,8 @@
     var yScale = d3.scale.linear()
             .range([HEIGHT - MARGINS.top, MARGINS.bottom])
             .domain([
-                d3.min(learner_stats_data, function (entry) {return entry.words;}),
-                d3.max(learner_stats_data, function (entry) {return entry.words;})
+                0,
+                +d3.max(learner_stats_data, function (entry) {return +entry.words;})
             ]);
 
     var xAxis = d3.svg.axis()

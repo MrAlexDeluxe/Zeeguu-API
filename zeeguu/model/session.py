@@ -1,5 +1,8 @@
 import random
 import datetime
+from sqlalchemy import desc
+
+import zeeguu
 from zeeguu import db
 
 
@@ -22,7 +25,27 @@ class Session(db.Model):
     @classmethod
     def for_user(cls, user):
         while True:
-            id_ = random.randint(0, 1 << 31)
+            id_ = random.randint(0, zeeguu.app.config.get("MAX_SESSION"))
             if cls.query.get(id_) is None:
                 break
         return cls(user, id_)
+
+    @classmethod
+    def find_for_id(cls, session_id):
+        try:
+            return cls.query.filter(cls.id == session_id).one()
+        except:
+            return None
+
+    # @classmethod
+    # def find_for_user(cls, user):
+    #     return cls.query.filter(cls.user == user).order_by(desc(cls.last_use)).first()
+
+    @classmethod
+    def find_for_user(cls, user):
+        s = cls.query.filter(cls.user == user).\
+            filter(cls.id < zeeguu.app.config.get("MAX_SESSION")).\
+            order_by(desc(cls.last_use)).first()
+        if not s:
+            s = cls.for_user(user)
+        return s

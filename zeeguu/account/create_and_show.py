@@ -1,5 +1,6 @@
 # -*- coding: utf8 -*-
 from zeeguu.language.knowledge_estimator import SethiKnowledgeEstimator
+from zeeguu.model.session import Session
 
 __author__ = 'mir.lu'
 
@@ -19,12 +20,11 @@ from zeeguu.account import acc
 
 @acc.route("/create_account", methods=("GET", "POST"))
 def create_account():
-
     # A cool way of passing the arguments to the flask template
-    template_arguments = dict (
-         languages= Language.all(),
-         native_languages = Language.native_languages(),
-         default_learned= Language.default_learned()
+    template_arguments = dict(
+        languages=Language.all(),
+        native_languages=Language.native_languages(),
+        default_learned=Language.default_learned()
     )
 
     # GET
@@ -40,7 +40,7 @@ def create_account():
     language = Language.find(form.get("language", None))
     native_language = Language.find(form.get("native_language", None))
 
-    if not (code == "Kairo" or code == "unibe" or code == "rug" or code =="42"):
+    if not (code == "Kairo" or code == "unibe" or code == "rug" or code == "42"):
         flash("Invitation code is not recognized. Please contact us.")
 
     elif password is None or email is None or name is None:
@@ -74,22 +74,20 @@ def my_account():
 
     estimator = SethiKnowledgeEstimator(flask.g.user, flask.g.user.learned_language_id)
 
-    year = datetime.date.today().year -1 # get data from year 2015(if this year is 2016)
-    month = datetime.date.today().month
-    bookmarks_dict, dates = flask.g.user.bookmarks_by_date(datetime.datetime(year, month, 1))
+    # get learner_stats_data for the line_graph
+    learner_stats_data = flask.g.user.learner_stats_data()
 
-    counts = []
-    for date in dates:
-        the_date = date.strftime('%Y-%m-%d')
-        the_count = len(bookmarks_dict[date])
-        counts.append(dict(date = the_date, count = the_count))
+    s = Session.find_for_user(flask.g.user)
+    zeeguu.db.session.add(s)
+    zeeguu.db.session.commit()
 
-    bookmark_counts_by_date = json.dumps(counts)
-    from zeeguu.api.module_learner_stats import compute_learner_stats
-    learner_stats_data = compute_learner_stats(flask.g.user)
+    session_id = str(s.id).zfill(8)
+    smartwatch_login_code = session_id[:4] + "-" + session_id[4:]
+
+    print "Done loading parameters"
 
     return flask.render_template("my_account.html",
                                  user=flask.g.user,
                                  estimator=estimator,
-                                 bookmark_counts_by_date=bookmark_counts_by_date,
-                                 learner_stats_data=learner_stats_data)
+                                 learner_stats_data=learner_stats_data,
+                                 smartwatch_login_code=smartwatch_login_code)

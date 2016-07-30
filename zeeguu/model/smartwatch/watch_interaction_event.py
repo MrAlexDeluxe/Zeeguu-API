@@ -1,4 +1,5 @@
 from zeeguu import db
+from zeeguu.model.bookmark import Bookmark
 
 
 class WatchInteractionEvent(db.Model):
@@ -21,6 +22,26 @@ class WatchInteractionEvent(db.Model):
         self.bookmark_id = bookmark_id
         self.event_type = event_type
 
+    def data_as_dictionary(self):
+        return dict(
+                bookmark_id= self.bookmark_id,
+                time= self.time.strftime("%Y-%M-%dT%H:%M:%S"),
+                event= self.event_type.name
+        )
+
+    def is_learned_event(self):
+        return self.event_type.name == "learnedIt"
+
+    def is_wrong_translation_event(self):
+        return self.event_type.name == "wrongTranslation"
+
+    def prevents_further_study(self):
+        """
+        Some events prevent a bookmark for being good for study
+        in the future
+        :return:
+        """
+        return self.is_learned_event() or self.is_wrong_translation_event()
 
     @classmethod
     def events_for_bookmark(cls, bookmark):
@@ -29,6 +50,10 @@ class WatchInteractionEvent(db.Model):
     @classmethod
     def events_for_bookmark_id(cls, bookmark_id):
         return cls.query.filter_by(bookmark_id=bookmark_id).all()
+
+    @classmethod
+    def events_for_user(cls, user):
+        return cls.query.join(Bookmark).filter(Bookmark.user_id == user.id).all()
 
 
 

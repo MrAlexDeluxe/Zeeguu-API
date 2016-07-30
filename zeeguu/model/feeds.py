@@ -1,4 +1,6 @@
 # -*- coding: utf8 -*-
+import time
+
 from zeeguu import db
 from sqlalchemy.orm import relationship
 import sqlalchemy.orm.exc
@@ -31,40 +33,56 @@ class RSSFeed(db.Model):
         self.description = description
 
     def as_dictionary(self):
+        image_url = ""
+        if self.image_url:
+            image_url = self.image_url.as_string()
+
         return dict(
                 id = self.id,
                 title = self.title,
                 url = self.url.as_string(),
                 description = self.description,
                 language = self.language.id,
-                image_url = self.image_url.as_string()
+                image_url = image_url
         )
 
     def feed_items(self):
         feed_data = feedparser.parse(self.url.as_string())
         feed_items = [
             dict(
-                    title   =   item.get("title",""),
-                    url     =   item.get("link",""),
-                    content =   item.get("content",""),
-                    summary =   item.get("summary",""),
-                    published=  item.get("published","")
+                    title=item.get("title",""),
+                    url=item.get("link",""),
+                    content=item.get("content",""),
+                    summary=item.get("summary",""),
+                    published=time.strftime("%Y-%m-%dT%H:%M:%S%z", item.published_parsed)
             )
             for item in feed_data.entries]
 
         return feed_items
 
+    @classmethod
+    def find_by_url(cls, url):
+        try:
+            result = (cls.query.filter(cls.url == url).one())
+            # print "found an existing RSSFeed object"
+            return result
+        except:
+            return None
+
 
     @classmethod
     def find_or_create(cls, url, title, description, image_url, language):
         try:
-            return (cls.query.filter(cls.url == url)
+            result = (cls.query.filter(cls.url == url)
                                 .filter(cls.title == title)
                                 .filter(cls.language == language)
-                                .filter(cls.image_url == image_url)
+                                # .filter(cls.image_url == image_url)
                                 .filter(cls.description == description)
                                 .one())
+            # print "found an existing RSSFeed object"
+            return result
         except sqlalchemy.orm.exc.NoResultFound:
+            # print "creating new feed object for " + title
             return cls(url, title, description, image_url, language)
 
     @classmethod

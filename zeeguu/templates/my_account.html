@@ -25,7 +25,6 @@
 
             <hr/>
 
-            {#        <line_graph>  {% include "graphs/learner_graph/learner_graph.html" %}  </line_graph>#}
             <line_graph></line_graph>
 
             <script>
@@ -35,20 +34,18 @@
 
             <h3>Vocabulary Statistics</h3>
 
-            {#        <pie_graph>  {% include "graphs/learner_statistics_piechart/learner_statistics_piechart.html" %}  </pie_graph>#}
-
             {% include "gamification/piechart_gamification.html" %}
 
             <hr/>
 
         {% endif %}
 
-
-
         <br/>
         <h4>Smartwatch code: {{ smartwatch_login_code }}</h4>
 
-
     </div>
+
+
+
 
 {% endblock %}

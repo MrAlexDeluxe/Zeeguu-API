@@ -451,10 +451,10 @@ class API_Tests(zeeguu_testcase.ZeeguuTestCase):
         for learnability in learnabilities:
             assert 0.0 <= learnability['score'] <= 1.0
             if learnability['id'] is 3:
-                assert learnability['score'] == 0.25
+                print learnability['score']
+                assert 0.16 < learnability['score'] < 0.17
             elif learnability['id'] is 4:
                 assert learnability['score'] == 0.0
-
 
     def test_get_lower_bound_percentage_of_vocabulary(self):
         rv_basic = self.api_get('/get_lower_bound_percentage_of_basic_vocabulary')
@@ -717,7 +717,7 @@ class API_Tests(zeeguu_testcase.ZeeguuTestCase):
         assert len(feeds) == initial_feed_count - 2
 
     def test_bookmarks_to_study(self):
-        to_study = self.json_from_api_get("bookmarks_to_study/10")
+        to_study = self.json_from_api_get("bookmarks_to_study/50")
         to_study_count_before = len(to_study)
 
         # Create an learnedIt event
@@ -736,10 +736,11 @@ class API_Tests(zeeguu_testcase.ZeeguuTestCase):
         result = self.api_post('/upload_smartwatch_events', dict(events=json.dumps(events)))
         assert (result.data == "OK")
 
-        to_study = self.json_from_api_get("bookmarks_to_study/10")
+        to_study = self.json_from_api_get("bookmarks_to_study/50")
         to_study_count_after = len(to_study)
 
         assert (to_study_count_before == 2 + to_study_count_after )
+
 
 
     def test_multiple_stop_following_same_feed(self):

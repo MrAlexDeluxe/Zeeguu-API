@@ -4,15 +4,12 @@ from sqlalchemy import Column, Table, ForeignKey, Integer
 import sqlalchemy.orm
 from sqlalchemy.orm import relationship
 
+
 from zeeguu import db, util
 from zeeguu.model.language import Language
 import datetime
 import json
-
-import zeeguu
-
-# this import is used when flask.g.user.GraphsCaches is called
-from zeeguu.model.graphs_caches import GraphsCaches
+from zeeguu.model.user_word import UserWord
 
 starred_words_association_table = Table('starred_words_association', db.Model.metadata,
     Column('user_id', Integer, ForeignKey('user.id')),
@@ -145,86 +142,75 @@ class User(db.Model):
 
     def bookmarks_to_study(self, bookmark_count):
         from zeeguu.model.bookmark import Bookmark
+        from zeeguu import RankedWord
 
         all_bookmarks = Bookmark.query.\
             filter_by(user_id=self.id).\
-            order_by(Bookmark.time.desc()).all()
+            join(UserWord).\
+            join(RankedWord).\
+            filter(UserWord.id == Bookmark.origin_id).\
+            filter(UserWord.rank_id == RankedWord.id).\
+            order_by(RankedWord.rank.asc()).all()
 
-        good_for_study = [x for x in all_bookmarks if x.good_for_study() ]
+        good_for_study=[]
+        size = 0
+        for b in all_bookmarks:
+            if b.good_for_study():
+                good_for_study.append(b)
+                size += 1
 
-        return map(lambda x: x.json_serializable_dict(), good_for_study[0:bookmark_count])
+            if size == bookmark_count:
+                break
+
+        if size < bookmark_count:
+        # we did not find enough words to study which are ranked
+        # add all the non-ranked ones, in chronological order
+
+            all_bookmarks = Bookmark.query. \
+                filter_by(user_id=self.id). \
+                join(UserWord). \
+                filter(UserWord.id == Bookmark.origin_id). \
+                filter(UserWord.rank_id is None). \
+                order_by(Bookmark.time.desc()).all()
+
+            for b in all_bookmarks:
+                if b.good_for_study():
+                    good_for_study.append(b)
+                    size += 1
+
+                if size == bookmark_count:
+                    break
+
+        return map(lambda x: x.json_serializable_dict(), good_for_study)
+
 
     # returns array with added bookmark amount per each date for the last year
     # this function is for the activity_graph, generates data
-    # this function also uses graph cache from DB
     def bookmark_counts_by_date(self):
-        graphs_caches = self.GraphsCaches
 
-        # check if graphs_caches exists and if it does, then check if it is up to date
-        if graphs_caches is None or graphs_caches.activity_graph_cache_expire.date() < datetime.date.today():
-            print "Generating new cache for activity_graph"
+        # compute bookmark_counts_by_date
+        year = datetime.date.today().year - 1  # get data from year 2015(if this year is 2016)
+        month = datetime.date.today().month
+        bookmarks_dict, dates = self.bookmarks_by_date(datetime.datetime(year, month, 1))
 
-            # compute bookmark_counts_by_date
-            year = datetime.date.today().year - 1  # get data from year 2015(if this year is 2016)
-            month = datetime.date.today().month
-            bookmarks_dict, dates = self.bookmarks_by_date(datetime.datetime(year, month, 1))
+        counts = []
+        for date in dates:
+            the_date = date.strftime('%Y-%m-%d')
+            the_count = len(bookmarks_dict[date])
+            counts.append(dict(date=the_date, count=the_count))
 
-            counts = []
-            for date in dates:
-                the_date = date.strftime('%Y-%m-%d')
-                the_count = len(bookmarks_dict[date])
-                counts.append(dict(date=the_date, count=the_count))
-
-                bookmark_counts_by_date = json.dumps(counts)
-
-            # if graphs_caches doesnt exists then create it and then update it
-            if graphs_caches is None:
-                graphs_caches = GraphsCaches(' ', ' ', ' ', self, None, None, None)
-
-            # add/update activity_graph_cache to the graphs_caches
-            graphs_caches.set_activity_graph_cache(str(bookmark_counts_by_date), datetime.datetime.now())
-
-            # commit changes to DB
-            zeeguu.db.session.add(graphs_caches)
-            zeeguu.db.session.commit()
-
-            return bookmark_counts_by_date
-        else:
-            print "Using cache for activity_graph"
-            return graphs_caches.activity_graph_cache
+        bookmark_counts_by_date = json.dumps(counts)
+        return bookmark_counts_by_date
 
     # returns array with learned and learning words count per each month for the last year
     # this function is for the line_graph, generates data
-    # this function also uses graph cache from DB
     def learner_stats_data(self):
-        graphs_caches = self.GraphsCaches
 
-        # check if graphs_caches exists and if it does, then check if it is up to date
-        if graphs_caches is None or graphs_caches.line_graph_cache_expire.date() < datetime.date.today():
-            print "Generating new cache for line_graph"
+        # compute learner_stats_data
+        from zeeguu.model.learner_stats.learner_stats import compute_learner_stats
+        learner_stats_data = compute_learner_stats(self)
 
-            # compute learner_stats_data
-            from zeeguu.model.learner_stats.learner_stats import compute_learner_stats
-            learner_stats_data = compute_learner_stats(self)
-
-            # save generated graphs in DB as caches
-            from zeeguu.model.graphs_caches import GraphsCaches
-
-            # if graphs_caches doesnt exists then create it and then update it
-            if graphs_caches is None:
-                graphs_caches = GraphsCaches(' ', ' ', ' ', self, None, None, None)
-
-            # add/update line_graph_cache to the graphs_caches
-            graphs_caches.set_line_graph_cache(str(learner_stats_data), datetime.datetime.now())
-
-            # commit changes to DB
-            zeeguu.db.session.add(graphs_caches)
-            zeeguu.db.session.commit()
-
-            return learner_stats_data
-        else:
-            print "Using cache for line graph"
-            return graphs_caches.line_graph_cache
+        return learner_stats_data
 
     def user_words(self):
         return map((lambda x: x.origin.word), self.all_bookmarks())

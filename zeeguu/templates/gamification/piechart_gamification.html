@@ -28,12 +28,21 @@
         var graph_name = "pie_graph" + (i + 1);
         document.write("<" + graph_name + "></" + graph_name + ">");
         if (words_unlocked > total) {
+
+            var temp_not_encountered = 0;
+            var temp_learned = Math.min(total, learned);
+            var temp_known = Math.min(known, total - temp_learned);
+            var temp_learning = 0;
+
             var learner_statistics_data =
-                    generate_learner_statistics_data(0, Math.min(Math.max(0, total - learned), known), Math.max(0, total - Math.min(total - learned, known)), 0);
+                    generate_learner_statistics_data(temp_not_encountered, temp_known, temp_learned, temp_learning);
         } else {
             var total_pie_sum = known + learned + learning;
+            var temp_not_encountered = Math.min(Math.max(0, total - total_pie_sum), not_encountered);
+            var temp_learning = Math.min(total - (known + learned), learning);
+
             var learner_statistics_data =
-                    generate_learner_statistics_data(Math.min(Math.max(0, total - total_pie_sum), not_encountered), known, learned, learning);
+                    generate_learner_statistics_data(temp_not_encountered, known, learned, temp_learning);
         }
         piechart_graph(learner_statistics_data, graph_name, "Top " + total + " Words ");
         total = total * 2;

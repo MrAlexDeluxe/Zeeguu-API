@@ -207,20 +207,16 @@ function draw_activity_graph(input_data_a, appendTo) {
             .attr("transform", "translate(" + (week_number(new Date(temp_year, temp_month, 4)) + left_offset_of_matrix) + ",0)")
             .style("text-anchor", "end")
             .attr("dy", "-.25em")
-            .text(function () {
-                return month_names[temp_month] + " " + temp_year;
-            });
+            .text(month_names[temp_month] + " " + temp_year);
     }
 
     // adding day names to the graph
-    for (var index = 0; index < day_count_in_week; index++) {
+    for (index = 0; index < day_count_in_week; index++) {
         activity_graph.append("text")
             .attr("transform", "translate(-8," + cellSize * (index + 1) + ")")
             .style("text-anchor", "end")
             .attr("dy", "-.25em")
-            .text(function () {
-                return week_days[index];
-            });
+            .text(week_days[index]);
     }
 
     // end of text adding
